@@ -2,8 +2,18 @@
 # http://docs.spring.io/spring-boot/docs/current/reference/html/common-application-properties.html
 server:
   port: 8888
-  servlet:
-    context-path:
+
+# The /gateway actuator endpoint lets you monitor and interact with a Spring Cloud Gateway application. 
+# To be remotely accessible, the endpoint has to be enabled and exposed over HTTP or JMX     
+management:
+  endpoint:
+    gateway:
+      enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: gateway
+            
 spring:
   application:
     name: gateway-service
@@ -13,18 +23,40 @@ spring:
       - id: rest-api-example1-service
         uri: http://localhost:8080
         predicates:
-        - Path=/rest-api-example1/**
-      - id: rest-api-example2-service
+        - Path=/rest-api-example1/**, /rest-api-example1/v3/api-docs/**
+        
+      - id: rest-api-example2/v1.0-service
         uri: http://localhost:8081
         predicates:
-        - Path=/rest-api-example2/**
-      - id: rest-api-example-m2m-service
+        - Path=/rest-api-example2/v1.0/**, /rest-api-example2/v3/api-docs/v1.0
+        
+      - id: rest-api-example2/v2.0-service
+        uri: http://localhost:8081
+        predicates:
+        - Path=/rest-api-example2/v2.0/**, /rest-api-example2/v3/api-docs/v2.0        
+        
+      - id: rest-api-example-m2m/v1.0-service
         uri: http://localhost:8082
         predicates:
-        - Path=/rest-api-example-m2m/**        
+        - Path=/rest-api-example-m2m/v1.0/**, /rest-api-example-m2m/v3/api-docs/v1.0     
+        
+      - id: rest-api-example-m2m/v2.0-service
+        uri: http://localhost:8082
+        predicates:
+        - Path=/rest-api-example-m2m/v2.0/**, /rest-api-example-m2m/v3/api-docs/v2.0 
+        
+                           
+      # route to catch swagger definitions requests and rewrite it to the corresponding url service            
+      - id: openapi-versioned
+        uri: http://localhost:${server.port}
+        predicates:
+        - Path=/v3/api-docs/*/v*
+        filters:
+        - RewritePath=/v3/api-docs/(.*)(/)(.*), /$1/v3/api-docs/$3
+      
       - id: openapi
         uri: http://localhost:${server.port}
         predicates:
         - Path=/v3/api-docs/**
         filters:
-        - RewritePath=/v3/api-docs/(?<path>.*), /$\{path}/v3/api-docs
+        - RewritePath=/v3/api-docs/(?<path>.*), /$\{path}/v3/api-docs        
